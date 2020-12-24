@@ -180,6 +180,38 @@ public class Shaper extends Managed {
         return this;
     }
 
+    @Nullable @Contract("_, _ -> new")
+    public TextBlock shapeBlock(String text, Font font) {
+        return shapeBlock(text, font, null, true, Float.POSITIVE_INFINITY, Point.ZERO);
+    }
+
+    @Nullable @Contract("_, _, _ -> new")
+    public TextBlock shapeBlock(String text, Font font, float width) {
+        return shapeBlock(text, font, null, true, width, Point.ZERO);
+    }
+
+    @Nullable @Contract("_, _, _, _ -> new")
+    public TextBlock shapeBlock(String text, Font font, float width, @NotNull Point offset) {
+        return shapeBlock(text, font, null, true, width, offset);
+    }
+
+    @Nullable @Contract("_, _, _, _, _ -> new")
+    public TextBlock shapeBlock(String text, Font font, boolean leftToRight, float width, @NotNull Point offset) {
+        return shapeBlock(text, font, null, leftToRight, width, offset);
+    }
+
+    @Nullable @Contract("_, _, _, _, _, _ -> new")
+    public TextBlock shapeBlock(String text, Font font, @Nullable FontFeature[] features, boolean leftToRight, float width, @NotNull Point offset) {
+        try {
+            Stats.onNativeCall();
+            long ptr = _nShapeToTextBlock(_ptr, text, Native.getPtr(font), features, leftToRight, width, offset._x, offset._y);
+            return 0 == ptr ? null : new TextBlock(ptr);
+        } finally {
+            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(font);
+        }
+    }
+
     @ApiStatus.Internal
     public Shaper(long ptr) {
         super(ptr, _FinalizerHolder.PTR);
@@ -198,6 +230,7 @@ public class Shaper extends Managed {
     public static native long _nMakeCoreText();
     public static native long _nMake(long fontMgrPtr);
     public static native long _nShapeToTextBlob(long ptr, String text, long fontPtr, FontFeature[] features, boolean leftToRight, float width, float offsetX, float offsetY);
+    public static native long _nShapeToTextBlock(long ptr, String text, long fontPtr, FontFeature[] features, boolean leftToRight, float width, float offsetX, float offsetY);
     public static native void _nShape(long ptr, long textPtr, Iterator<FontRun> fontIter, Iterator<BidiRun> bidiIter, Iterator<ScriptRun> scriptIter, Iterator<LanguageRun> langIter,
                                       FontFeature[] features, float width, RunHandler runHandler);
 }

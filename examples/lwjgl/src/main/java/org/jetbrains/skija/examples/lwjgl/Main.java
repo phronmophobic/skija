@@ -361,7 +361,7 @@ class Window {
         scenes.put("TextBlob Bounds",  new TextBlobBoundsScene());
         scenes.put("Wall of Text",     new WallOfTextScene());
         scenes.put("Watches",          new WatchesScene());
-        currentScene = "TextBlob Bounds";
+        currentScene = "Wall of Text";
         t0 = System.nanoTime();
 
         while (!glfwWindowShouldClose(window)) {

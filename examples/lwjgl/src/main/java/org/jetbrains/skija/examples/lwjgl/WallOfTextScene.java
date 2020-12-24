@@ -26,6 +26,7 @@ public class WallOfTextScene extends Scene {
                     .toArray(String[]::new);
         text = String.join(" ", words);
         _variants = new String[] {
+            "ShapeThenWrap TextBlock",
             "ShapeThenWrap",
             "ShapeThenWrap by words",
             "JVM RunHandler",
@@ -37,7 +38,7 @@ public class WallOfTextScene extends Scene {
             "Paragraph with cache",
             "Paragraph no cache"
         };
-        _variantIdx = 1;
+        _variantIdx = 0;
         colors = new int[] {
             0xFF000000,
             0xFFf94144,
@@ -119,6 +120,15 @@ public class WallOfTextScene extends Scene {
         }
     }
 
+    public void drawTextBlock(Shaper shaper, Canvas canvas, float padding, float textWidth) {
+        try (var block = shaper.shapeBlock(text, font, textWidth);) {
+            canvas.drawTextBlock(block, padding, padding, font, fill);
+            for (Rect r: block.getRunBounds()) {
+                canvas.drawRect(r.translate(padding, padding), boundsStroke);
+            }
+        }
+    }
+
     public void drawTogether(Shaper shaper, Canvas canvas, float padding, float textWidth) {
         try (var blob = makeBlob(text, shaper, textWidth);) {
             canvas.drawTextBlob(blob, padding, padding, font, fill);
@@ -154,6 +164,8 @@ public class WallOfTextScene extends Scene {
             if (shaper != null) {
                 if (variant.endsWith("by words"))
                     drawByWords(shaper, canvas, padding, textWidth);
+                else if (variant.endsWith("TextBlock"))
+                    drawTextBlock(shaper, canvas, padding, textWidth);
                 else
                     drawTogether(shaper, canvas, padding, textWidth);
                 shaper.close();

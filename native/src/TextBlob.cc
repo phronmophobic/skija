@@ -1,4 +1,3 @@
-
 #include <cstring>
 #include <iostream>
 #include <jni.h>
@@ -336,31 +335,37 @@ extern "C" JNIEXPORT jint JNICALL Java_org_jetbrains_skija_TextBlob__1nGetOffset
             continue;
         }
 
-        // check if we ended prev line after last char, except for the first li
-        SkScalar lineTop = posBuffer[1] + metrics.fAscent;
+        // between lines: check if we ended prev line after last char, except for the first line
+        SkScalar lineTop = posBuffer[1] - (-metrics.fAscent);
         if (lineTop > 0 && y < lineTop)
             return runStart16;
-
-        // check last glyph first, since its right boundary is calculated differently
-        SkScalar lastGlyphWidth;
-        font.getWidths(&run.fGlyphIndices[run.fGlyphCount - 1], 1, &lastGlyphWidth);
-        SkScalar lastGlyphCenter = posBuffer[run.fGlyphCount * 2 - 2] + lastGlyphWidth / 2;
-        if (x > lastGlyphCenter) {
-            runStart16 += conv.from8To16(runRecord->textSize());
-            continue;
-        }
 
         // have to look in this run
         SkScalar glyphLeft = posBuffer[0];
         uint32_t idx = 0;
-        for (; idx < run.fGlyphCount - 1; ++idx) {
-            SkScalar glyphRight = posBuffer[(idx + 1) * 2];
+        for (; idx < run.fGlyphCount; ++idx) {
+            SkScalar glyphRight;
+            if (idx < run.fGlyphCount - 1)
+                glyphRight = posBuffer[(idx + 1) * 2];
+            else {
+                SkScalar lastGlyphWidth;
+                font.getWidths(&run.fGlyphIndices[run.fGlyphCount - 1], 1, &lastGlyphWidth);
+                glyphRight = glyphLeft + lastGlyphWidth;
+            }
+
+            if (SkScalarNearlyEqual(glyphRight, glyphLeft))
+                continue;
+
             SkScalar glyphCenter = (glyphLeft + glyphRight) / 2;
             if (x < glyphCenter)
                 break;
             glyphLeft = glyphRight;
         }
-        return runStart16 + conv.from8To16(runRecord->clusterBuffer()[idx]);
+
+        if (idx == run.fGlyphCount)
+            runStart16 += conv.from8To16(runRecord->textSize());
+        else
+            return runStart16 + conv.from8To16(runRecord->clusterBuffer()[idx]);
     }
 
     return runStart16;
