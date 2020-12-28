@@ -26,7 +26,7 @@ public class WallOfTextScene extends Scene {
                     .toArray(String[]::new);
         text = String.join(" ", words);
         _variants = new String[] {
-            "ShapeThenWrap TextBlock",
+            "ShapeDontWrapOrReorder TextLine",
             "ShapeThenWrap",
             "ShapeThenWrap by words",
             "JVM RunHandler",
@@ -120,12 +120,10 @@ public class WallOfTextScene extends Scene {
         }
     }
 
-    public void drawTextBlock(Shaper shaper, Canvas canvas, float padding, float textWidth) {
-        try (var block = shaper.shapeBlock(text, font, textWidth);) {
-            canvas.drawTextBlock(block, padding, padding, font, fill);
-            for (Rect r: block.getRunBounds()) {
-                canvas.drawRect(r.translate(padding, padding), boundsStroke);
-            }
+    public void drawTextLine(Shaper shaper, Canvas canvas, float padding, float textWidth) {
+        try (var line = shaper.shapeLine(text, font, textWidth);) {
+            canvas.drawTextLine(line, padding, padding - line.getAscent(), font, fill);
+            canvas.drawRect(Rect.makeXYWH(padding, padding, line.getAdvance(), -line.getAscent() + line.getDescent()), boundsStroke);
         }
     }
 
@@ -150,13 +148,13 @@ public class WallOfTextScene extends Scene {
             fill.setColor(colors[_variantIdx]);
 
             Shaper shaper = null;
-            if ("Primitive".equals(variant))
+            if (variant.startsWith("Primitive"))
                 shaper = Shaper.makePrimitive();
-            else if ("ShaperDrivenWrapper".equals(variant))
+            else if (variant.startsWith("ShaperDrivenWrapper"))
                 shaper = Shaper.makeShaperDrivenWrapper();
-            else if ("ShapeDontWrapOrReorder".equals(variant))
+            else if (variant.startsWith("ShapeDontWrapOrReorder"))
                 shaper = Shaper.makeShapeDontWrapOrReorder();
-            else if ("CoreText".equals(variant))
+            else if (variant.startsWith("CoreText"))
                 shaper = "Mac OS X".equals(System.getProperty("os.name")) ? Shaper.makeCoreText() : null;
             else
                 shaper = Shaper.makeShapeThenWrap();
@@ -164,8 +162,8 @@ public class WallOfTextScene extends Scene {
             if (shaper != null) {
                 if (variant.endsWith("by words"))
                     drawByWords(shaper, canvas, padding, textWidth);
-                else if (variant.endsWith("TextBlock"))
-                    drawTextBlock(shaper, canvas, padding, textWidth);
+                else if (variant.endsWith("TextLine"))
+                    drawTextLine(shaper, canvas, padding, textWidth);
                 else
                     drawTogether(shaper, canvas, padding, textWidth);
                 shaper.close();

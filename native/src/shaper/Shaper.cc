@@ -4,8 +4,8 @@
 #include "../interop.hh"
 #include "interop.hh"
 #include "SkShaper.h"
-#include "TextBlockRunHandler.hh"
 #include "src/utils/SkUTF.h"
+#include "TextLineRunHandler.hh"
 
 static void deleteShaper(SkShaper* instance) {
     // std::cout << "Deleting [SkShaper " << instance << "]" << std::endl;
@@ -54,7 +54,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skija_shaper_Shaper__1nMak
     return reinterpret_cast<jlong>(SkShaper::Make(sk_ref_sp(fontMgr)).release());
 }
 
-extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skija_shaper_Shaper__1nShapeToTextBlob
+extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skija_shaper_Shaper__1nShapeBlob
   (JNIEnv* env, jclass jclass, jlong ptr, jstring textObj, jlong fontPtr, jobjectArray featuresArr, jboolean leftToRight, jfloat width, jfloat offsetX, jfloat offsetY) {
     SkShaper* instance = reinterpret_cast<SkShaper*>(static_cast<uintptr_t>(ptr));
     SkString text = skString(env, textObj);
@@ -81,9 +81,10 @@ extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skija_shaper_Shaper__1nSha
     return reinterpret_cast<jlong>(blob);
 }
 
-extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skija_shaper_Shaper__1nShapeToTextBlock
-  (JNIEnv* env, jclass jclass, jlong ptr, jstring textObj, jlong fontPtr, jobjectArray featuresArr, jboolean leftToRight, jfloat width, jfloat offsetX, jfloat offsetY) {
+extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skija_shaper_Shaper__1nShapeLine
+  (JNIEnv* env, jclass jclass, jlong ptr, jstring textObj, jlong fontPtr, jobjectArray featuresArr, jboolean leftToRight) {
     SkShaper* instance = reinterpret_cast<SkShaper*>(static_cast<uintptr_t>(ptr));
+
     SkString text = skString(env, textObj);
     SkFont* font = reinterpret_cast<SkFont*>(static_cast<uintptr_t>(fontPtr));
     std::vector<SkShaper::Feature> features = skija::FontFeature::fromJavaArray(env, featuresArr);
@@ -101,11 +102,11 @@ extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skija_shaper_Shaper__1nSha
     std::unique_ptr<SkShaper::LanguageRunIterator> languageRunIter(SkShaper::MakeStdLanguageRunIterator(text.c_str(), text.size()));
     if (!languageRunIter) return 0;
 
-    TextBlockRunHandler rh(text.c_str(), {offsetX, offsetY});
-    instance->shape(text.c_str(), text.size(), *fontRunIter, *bidiRunIter, *scriptRunIter, *languageRunIter, features.data(), features.size(), width, &rh);
-    TextBlock* block = rh.makeBlock().release();
+    TextLineRunHandler rh(text);
+    instance->shape(text.c_str(), text.size(), *fontRunIter, *bidiRunIter, *scriptRunIter, *languageRunIter, features.data(), features.size(), std::numeric_limits<float>::infinity(), &rh);
+    TextLine* line = rh.makeLine().release();
     
-    return reinterpret_cast<jlong>(block);
+    return reinterpret_cast<jlong>(line);
 }
 
 template <typename RunIteratorSubclass>
